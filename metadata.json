@@ -1,0 +1,5 @@
+{
+  "name": "Intelligent Project Timeline Manager",
+  "description": "A comprehensive project management tool featuring a draggable and resizable timeline, customizable project phases, and status tracking based on the provided project list.",
+  "requestFramePermissions": []
+}
