@@ -1,24 +1,49 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Project, ProjectStatus } from './types';
 import { INITIAL_PROJECTS } from './constants';
 import TimelineHeader from './components/TimelineHeader';
 import ProjectRow from './components/ProjectRow';
 import ProjectModal from './components/ProjectModal';
 import ProjectListTable from './components/ProjectListTable';
-import { Plus, LayoutGrid, Calendar, ListTodo, Move } from 'lucide-react';
+import { Plus, LayoutGrid, Calendar, ListTodo, Move, Save, Check } from 'lucide-react';
 
 type ViewMode = 'timeline' | 'list';
 
 const App: React.FC = () => {
-  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
+  // Load initial projects from localStorage if available
+  const [projects, setProjects] = useState<Project[]>(() => {
+    const saved = localStorage.getItem('pm_board_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved projects", e);
+        return INITIAL_PROJECTS;
+      }
+    }
+    return INITIAL_PROJECTS;
+  });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   const updateProject = useCallback((projectId: string, updates: Partial<Project>) => {
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...updates } : p));
   }, []);
+
+  const handleSaveToStorage = () => {
+    setSaveStatus('saving');
+    localStorage.setItem('pm_board_data', JSON.stringify(projects));
+    
+    // Show "Saved" feedback for 2 seconds
+    setTimeout(() => {
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    }, 300);
+  };
 
   const handleSaveProject = (projectData: Project) => {
     if (editingProject) {
@@ -89,6 +114,29 @@ const App: React.FC = () => {
               </div>
             </div>
 
+            {/* Save Button */}
+            <button 
+              onClick={handleSaveToStorage}
+              disabled={saveStatus === 'saving'}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                saveStatus === 'saved' 
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 active:scale-95'
+              }`}
+            >
+              {saveStatus === 'saved' ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  已保存
+                </>
+              ) : (
+                <>
+                  <Save className={`w-4 h-4 ${saveStatus === 'saving' ? 'animate-pulse' : ''}`} />
+                  保存更改
+                </>
+              )}
+            </button>
+
             <button 
               onClick={handleAddNew}
               className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 hover:scale-[1.02] active:scale-95"
@@ -129,7 +177,7 @@ const App: React.FC = () => {
           </div>
           
           <div className="text-[10px] text-gray-400 font-medium">
-            提示：1. 拖拽上方“新增阶段”到项目行 2. 双击阶段标签可重命名 3. 拖拽边缘可调整长宽及位置
+            提示：1. 拖拽上方“新增阶段”到项目行 2. 双击阶段标签可重命名 3. 拖拽边缘可调整长宽及位置 4. 点击“保存更改”持久化数据
           </div>
         </div>
 
